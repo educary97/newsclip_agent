@@ -77,48 +77,34 @@ Return ONLY the JSON array. No preamble, no markdown fences, no extra text.
 def fetch_stories() -> list[dict]:
     client = anthropic.Anthropic()
 
-    messages = [{"role": "user", "content": build_prompt()}]
-
     response = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=4000,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
-        messages=messages,
+        messages=[{"role": "user", "content": build_prompt()}],
     )
 
-    # Keep going until we get a final text response
-    while response.stop_reason == "tool_use":
-        tool_uses = [b for b in response.content if b.type == "tool_use"]
-        tool_results = []
-        for tool_use in tool_uses:
-            tool_results.append({
-                "type": "tool_result",
-                "tool_use_id": tool_use.id,
-                "content": "",
-            })
-        messages.append({"role": "assistant", "content": response.content})
-        messages.append({"role": "user", "content": tool_results})
-        time.sleep(10)
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=4000,
-            tools=[{"type": "web_search_20250305", "name": "web_search"}],
-            messages=messages,
-        )
+    # Debug: print all block types received
+    for block in response.content:
+        print(f"Block type: {block.type}")
+        if block.type == "text":
+            print(f"Text preview: {block.text[:200]}")
 
-    text = next(
-        block.text for block in response.content
-        if block.type == "text"
-    )
+    # Find text block
+    text_blocks = [b for b in response.content if b.type == "text"]
+    if not text_blocks:
+        raise ValueError(f"No text block found. Stop reason: {response.stop_reason}. Blocks: {[b.type for b in response.content]}")
 
-    # Strip markdown fences if model wrapped the JSON
-    text = text.strip()
+    text = text_blocks[-1].text.strip()
+
+    # Strip markdown fences if present
     if text.startswith("```"):
         text = text.split("```")[1]
         if text.startswith("json"):
             text = text[4:]
     text = text.strip()
 
+    print(f"Final text preview: {text[:300]}")
     return json.loads(text)
 
 # ── Build HTML email ───────────────────────────────────────────────────────────
