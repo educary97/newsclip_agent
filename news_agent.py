@@ -88,15 +88,14 @@ def fetch_stories() -> list[dict]:
         messages=[{"role": "user", "content": build_prompt()}],
     )
 
-    # Debug: print all block types received
-    for block in response.content:
-        print(f"Block type: {block.type}")
-        if block.type == "text":
-            print(f"Text preview: {block.text[:200]}")
+    # Find all text blocks
+    text_blocks = [b for b in response.content if b.type == "text"]
 
-    # Find text block
+    if not text_blocks:
+        raise ValueError(f"No text block found. Blocks: {[b.type for b in response.content]}")
+
     text = text_blocks[-1].text.strip()
-    print(f"Full text: {text}")
+    print(f"Full response: {text[:500]}")
 
     # Find the JSON array within the text
     start = text.find("[")
@@ -105,16 +104,6 @@ def fetch_stories() -> list[dict]:
         raise ValueError(f"No JSON array found in response: {text[:300]}")
     text = text[start:end]
 
-    return json.loads(text)
-
-    # Strip markdown fences if present
-    if text.startswith("```"):
-        text = text.split("```")[1]
-        if text.startswith("json"):
-            text = text[4:]
-    text = text.strip()
-
-    print(f"Final text preview: {text[:300]}")
     return json.loads(text)
 
 # ── Build HTML email ───────────────────────────────────────────────────────────
