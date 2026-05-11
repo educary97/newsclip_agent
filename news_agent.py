@@ -95,11 +95,17 @@ def fetch_stories() -> list[dict]:
             print(f"Text preview: {block.text[:200]}")
 
     # Find text block
-    text_blocks = [b for b in response.content if b.type == "text"]
-    if not text_blocks:
-        raise ValueError(f"No text block found. Stop reason: {response.stop_reason}. Blocks: {[b.type for b in response.content]}")
-
     text = text_blocks[-1].text.strip()
+    print(f"Full text: {text}")
+
+    # Find the JSON array within the text
+    start = text.find("[")
+    end   = text.rfind("]") + 1
+    if start == -1 or end == 0:
+        raise ValueError(f"No JSON array found in response: {text[:300]}")
+    text = text[start:end]
+
+    return json.loads(text)
 
     # Strip markdown fences if present
     if text.startswith("```"):
