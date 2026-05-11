@@ -3,25 +3,27 @@ NewsClip Agent — Weekly News Digest
 Searches for top news stories and sends a formatted email digest.
 
 Requirements:
-    pip install anthropic resend
+    pip install anthropic sendgrid
 
 Environment variables needed:
     ANTHROPIC_API_KEY
-    RESEND_API_KEY
-    DIGEST_EMAIL  (recipient address)
-    SENDER_EMAIL  (e.g. digest@yourdomain.com — must be verified in Resend)
+    SENDGRID_API_KEY
+    DIGEST_EMAIL   — where you receive the digest (e.g. you@gmail.com)
+    SENDER_EMAIL   — your verified sender in SendGrid (e.g. you@gmail.com)
 """
 
 import os
 import json
 from datetime import date, timedelta
+
 import anthropic
-import resend
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
-RECIPIENT_EMAIL = os.environ.get("DIGEST_EMAIL", "eduardo@example.com")
-SENDER_EMAIL    = os.environ.get("SENDER_EMAIL",  "digest@yourdomain.com")
+RECIPIENT_EMAIL = os.environ.get("DIGEST_EMAIL")
+SENDER_EMAIL    = os.environ.get("SENDER_EMAIL")
 
 SOURCES_PT = [
     "publico.pt",
@@ -216,14 +218,15 @@ def build_email_html(stories: list[dict]) -> str:
 # ── Send email ─────────────────────────────────────────────────────────────────
 
 def send_email(html: str) -> None:
-    resend.api_key = os.environ["RESEND_API_KEY"]
     today = date.today().strftime("%d %b %Y")
-    resend.Emails.send({
-        "from":    SENDER_EMAIL,
-        "to":      [RECIPIENT_EMAIL],
-        "subject": f"Weekly Digest — {today}",
-        "html":    html,
-    })
+    message = Mail(
+        from_email=SENDER_EMAIL,
+        to_emails=RECIPIENT_EMAIL,
+        subject=f"Weekly Digest — {today}",
+        html_content=html,
+    )
+    sg = SendGridAPIClient(os.environ["SENDGRID_API_KEY"])
+    sg.send(message)
     print(f"Digest sent to {RECIPIENT_EMAIL}")
 
 # ── Entry point ────────────────────────────────────────────────────────────────
