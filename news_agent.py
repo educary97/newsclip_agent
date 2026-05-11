@@ -12,6 +12,7 @@ Environment variables needed:
     SENDER_EMAIL   — your verified sender in SendGrid (e.g. you@gmail.com)
 """
 
+import time
 import os
 import json
 from datetime import date, timedelta
@@ -97,6 +98,7 @@ def fetch_stories() -> list[dict]:
             })
         messages.append({"role": "assistant", "content": response.content})
         messages.append({"role": "user", "content": tool_results})
+        time.sleep(10)
         response = client.messages.create(
             model="claude-sonnet-4-5",
             max_tokens=4000,
