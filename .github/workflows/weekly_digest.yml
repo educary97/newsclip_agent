@@ -30,12 +30,12 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install anthropic resend
+        run: pip install anthropic sendgrid
 
       - name: Run NewsClip agent
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          RESEND_API_KEY:    ${{ secrets.RESEND_API_KEY }}
+          SENDGRID_API_KEY:  ${{ secrets.SENDGRID_API_KEY }}
           DIGEST_EMAIL:      ${{ secrets.DIGEST_EMAIL }}
           SENDER_EMAIL:      ${{ secrets.SENDER_EMAIL }}
         run: python news_agent.py
