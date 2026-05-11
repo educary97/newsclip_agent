@@ -52,20 +52,24 @@ def build_prompt() -> str:
     week_start = date.today() - timedelta(days=7)
     week_end   = date.today()
     return f"""
-Search the web for the most talked-about news stories published between
-{week_start.strftime('%d %b %Y')} and {week_end.strftime('%d %b %Y')}.
+Search Google News for the most talked-about stories from the past week
+({week_start.strftime('%d %b %Y')} to {week_end.strftime('%d %b %Y')}).
 
-Cover Portuguese outlets: {', '.join(SOURCES_PT)}
-Cover international outlets: {', '.join(SOURCES_INT)}
+Do the following searches:
+- site:news.google.com Portugal news this week
+- site:news.google.com top world news this week
+- site:news.google.com Portugal economia esta semana
+- site:news.google.com Portugal política esta semana
 
 {CUSTOM_INSTRUCTIONS}
 
-Return exactly 12 stories as a JSON array. Each object must have:
+Based on your search results, return exactly 12 stories as a JSON array.
+Each object must have:
   "section"   — "Portugal" or "International"
-  "headline"  — the story headline
+  "headline"  — the story headline in English
   "summary"   — 1-2 sentences, max 60 words
   "keywords"  — list of 3-4 topic tags
-  "source"    — outlet name, e.g. "Publico"
+  "source"    — outlet name, e.g. "Publico" or "Reuters"
   "url"       — direct link to the article
 
 Sort: Portugal stories first, then International.
