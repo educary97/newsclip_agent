@@ -4,10 +4,13 @@
 # Can also be triggered manually from the GitHub Actions UI.
 #
 # Required repository secrets (Settings → Secrets → Actions):
-#   ANTHROPIC_API_KEY   — from console.anthropic.com
-#   SENDGRID_API_KEY    — from app.sendgrid.com
-#   DIGEST_EMAIL        — where you receive the digest, e.g. you@gmail.com
-#   SENDER_EMAIL        — your verified sender in SendGrid, e.g. you@gmail.com
+#   ANTHROPIC_API_KEY    — from console.anthropic.com
+#   SENDGRID_API_KEY     — from app.sendgrid.com
+#   DIGEST_EMAIL         — where you receive the digest, e.g. you@gmail.com
+#   SENDER_EMAIL         — your verified sender in SendGrid, e.g. you@gmail.com
+#   GMAIL_CLIENT_ID      — from Google Cloud OAuth credentials
+#   GMAIL_CLIENT_SECRET  — from Google Cloud OAuth credentials
+#   GMAIL_REFRESH_TOKEN  — from OAuth Playground
 
 name: Weekly News Digest
 
@@ -30,12 +33,15 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install anthropic sendgrid
+        run: pip install anthropic sendgrid google-auth google-auth-oauthlib google-api-python-client
 
       - name: Run NewsClip agent
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          SENDGRID_API_KEY:  ${{ secrets.SENDGRID_API_KEY }}
-          DIGEST_EMAIL:      ${{ secrets.DIGEST_EMAIL }}
-          SENDER_EMAIL:      ${{ secrets.SENDER_EMAIL }}
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
+          SENDGRID_API_KEY:    ${{ secrets.SENDGRID_API_KEY }}
+          DIGEST_EMAIL:        ${{ secrets.DIGEST_EMAIL }}
+          SENDER_EMAIL:        ${{ secrets.SENDER_EMAIL }}
+          GMAIL_CLIENT_ID:     ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
         run: python news_agent.py
