@@ -78,33 +78,92 @@ Return ONLY the JSON array. No preamble, no markdown fences, no extra text.
 
 # ── Run the agent ──────────────────────────────────────────────────────────────
 
+# ── Agent prompt ───────────────────────────────────────────────────────────────
+
+def build_search_prompt() -> str:
+    week_start = date.today() - timedelta(days=7)
+    week_end   = date.today()
+    return f"""
+Search the web for the most important news stories from the past week
+({week_start.strftime('%d %b %Y')} to {week_end.strftime('%d %b %Y')}).
+
+Please search for:
+1. "Portugal news May 2026"
+2. "Portugal economia maio 2026"
+3. "world news this week May 2026"
+4. "international business news May 2026"
+
+Focus on economy, politics, business, and technology.
+Include at least 3 Portuguese stories.
+Avoid celebrity or entertainment content.
+
+After searching, summarise the top 12 stories you found. For each story include:
+- A headline
+- A 1-2 sentence summary (max 60 words)
+- The source outlet
+- The URL
+- 3-4 keyword tags
+- Whether it is Portugal or International news
+
+Present them clearly, one by one.
+"""
+
+def build_format_prompt(raw: str) -> str:
+    return f"""
+Convert the following news summaries into a JSON array.
+
+{raw}
+
+Return exactly this structure for each story — a JSON array of 12 objects:
+  "section"   — "Portugal" or "International"
+  "headline"  — the story headline
+  "summary"   — 1-2 sentences, max 60 words
+  "keywords"  — list of 3-4 topic tags
+  "source"    — outlet name
+  "url"       — article URL
+
+Return ONLY the JSON array. No preamble, no markdown fences, no extra text.
+"""
+
+# ── Run the agent ──────────────────────────────────────────────────────────────
+
 def fetch_stories() -> list[dict]:
     client = anthropic.Anthropic()
 
+    # Step 1: search and summarise
+    print("Step 1: searching for news...")
     response = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=4000,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
-        messages=[{"role": "user", "content": build_prompt()}],
+        messages=[{"role": "user", "content": build_search_prompt()}],
     )
-
-    # Find all text blocks
     text_blocks = [b for b in response.content if b.type == "text"]
-
     if not text_blocks:
-        raise ValueError(f"No text block found. Blocks: {[b.type for b in response.content]}")
+        raise ValueError("No text returned from search step.")
+    raw = text_blocks[-1].text.strip()
+    print(f"Search step result preview: {raw[:300]}")
 
-    text = text_blocks[-1].text.strip()
-    print(f"Full response: {text[:500]}")
+    # Step 2: format into JSON
+    print("Step 2: formatting into JSON...")
+    time.sleep(5)
+    response2 = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=4000,
+        messages=[{"role": "user", "content": build_format_prompt(raw)}],
+    )
+    text_blocks2 = [b for b in response2.content if b.type == "text"]
+    if not text_blocks2:
+        raise ValueError("No text returned from format step.")
+    text = text_blocks2[-1].text.strip()
+    print(f"Format step result preview: {text[:300]}")
 
-    # Find the JSON array within the text
+    # Extract JSON array
     start = text.find("[")
     end   = text.rfind("]") + 1
     if start == -1 or end == 0:
-        raise ValueError(f"No JSON array found in response: {text[:300]}")
-    text = text[start:end]
-
-    return json.loads(text)
+        raise ValueError(f"No JSON array found: {text[:300]}")
+    return json.loads(text[start:end])
 
 # ── Build HTML email ───────────────────────────────────────────────────────────
 
