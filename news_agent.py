@@ -97,7 +97,7 @@ def fetch_stories() -> list[dict]:
 
     # Step 2: format into JSON
     print("Step 2: formatting into JSON...")
-    time.sleep(5)
+    time.sleep(30)
     response2 = client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=8000,
