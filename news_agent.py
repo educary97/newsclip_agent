@@ -12,9 +12,9 @@ Environment variables needed:
     SENDER_EMAIL   — your verified sender in SendGrid (e.g. you@gmail.com)
 """
 
-import time
 import os
 import json
+import time
 from datetime import date, timedelta
 
 import anthropic
@@ -26,86 +26,37 @@ from sendgrid.helpers.mail import Mail
 RECIPIENT_EMAIL = os.environ.get("DIGEST_EMAIL")
 SENDER_EMAIL    = os.environ.get("SENDER_EMAIL")
 
-SOURCES_PT = [
-    "publico.pt",
-    "observador.pt",
-    "jornaldenegocios.pt",
-    "rtp.pt",
-]
-
-SOURCES_INT = [
-    "reuters.com",
-    "bbc.com",
-    "ft.com",
-    "economist.com",
-]
-
 CUSTOM_INSTRUCTIONS = (
     "Focus on economy, politics, business, and technology. "
     "Always include at least 3 Portuguese stories. "
     "Avoid celebrity or entertainment content."
 )
 
-# ── Agent prompt ───────────────────────────────────────────────────────────────
-
-def build_prompt() -> str:
-    week_start = date.today() - timedelta(days=7)
-    week_end   = date.today()
-    return f"""
-Search Google News for the most talked-about stories from the past week
-({week_start.strftime('%d %b %Y')} to {week_end.strftime('%d %b %Y')}).
-
-Do the following searches:
-- site:news.google.com Portugal news this week
-- site:news.google.com top world news this week
-- site:news.google.com Portugal economia esta semana
-- site:news.google.com Portugal política esta semana
-
-{CUSTOM_INSTRUCTIONS}
-
-Based on your search results, return exactly 12 stories as a JSON array.
-Each object must have:
-  "section"   — "Portugal" or "International"
-  "headline"  — the story headline in English
-  "summary"   — 1-2 sentences, max 60 words
-  "keywords"  — list of 3-4 topic tags
-  "source"    — outlet name, e.g. "Publico" or "Reuters"
-  "url"       — direct link to the article
-
-Sort: Portugal stories first, then International.
-Return ONLY the JSON array. No preamble, no markdown fences, no extra text.
-"""
-
-# ── Run the agent ──────────────────────────────────────────────────────────────
-
-# ── Agent prompt ───────────────────────────────────────────────────────────────
+# ── Agent prompts ──────────────────────────────────────────────────────────────
 
 def build_search_prompt() -> str:
     week_start = date.today() - timedelta(days=7)
     week_end   = date.today()
     return f"""
-Search the web for the most important news stories from the past week
-({week_start.strftime('%d %b %Y')} to {week_end.strftime('%d %b %Y')}).
+Search the web for news from {week_start.strftime('%d %b %Y')} to {week_end.strftime('%d %b %Y')}.
 
-Please search for:
-1. "Portugal news May 2026"
-2. "Portugal economia maio 2026"
-3. "world news this week May 2026"
-4. "international business news May 2026"
+Do these 4 searches one by one:
+1. "Portugal news this week"
+2. "Portugal economia politica maio 2026"
+3. "top world news this week"
+4. "business technology news this week"
 
-Focus on economy, politics, business, and technology.
-Include at least 3 Portuguese stories.
-Avoid celebrity or entertainment content.
+{CUSTOM_INSTRUCTIONS}
 
-After searching, summarise the top 12 stories you found. For each story include:
-- A headline
-- A 1-2 sentence summary (max 60 words)
-- The source outlet
-- The URL
-- 3-4 keyword tags
-- Whether it is Portugal or International news
-
-Present them clearly, one by one.
+Then list exactly 12 stories total (at least 3 from Portugal).
+For each story write:
+SECTION: Portugal or International
+HEADLINE: ...
+SUMMARY: ...
+SOURCE: ...
+URL: ...
+KEYWORDS: ...
+---
 """
 
 def build_format_prompt(raw: str) -> str:
@@ -114,7 +65,7 @@ Convert the following news summaries into a JSON array.
 
 {raw}
 
-Return exactly this structure for each story — a JSON array of 12 objects:
+Return exactly this structure — a JSON array of 12 objects:
   "section"   — "Portugal" or "International"
   "headline"  — the story headline
   "summary"   — 1-2 sentences, max 60 words
@@ -134,7 +85,7 @@ def fetch_stories() -> list[dict]:
     print("Step 1: searching for news...")
     response = client.messages.create(
         model="claude-sonnet-4-5",
-        max_tokens=4000,
+        max_tokens=8000,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
         messages=[{"role": "user", "content": build_search_prompt()}],
     )
@@ -149,7 +100,7 @@ def fetch_stories() -> list[dict]:
     time.sleep(5)
     response2 = client.messages.create(
         model="claude-sonnet-4-5",
-        max_tokens=4000,
+        max_tokens=8000,
         messages=[{"role": "user", "content": build_format_prompt(raw)}],
     )
     text_blocks2 = [b for b in response2.content if b.type == "text"]
@@ -295,7 +246,7 @@ def build_email_html(stories: list[dict]) -> str:
 def send_email(html: str) -> None:
     today = date.today().strftime("%d %b %Y")
     message = Mail(
-        from_email=SENDER_EMAIL,
+        from_email=(SENDER_EMAIL, "NewsClip Agent"),
         to_emails=RECIPIENT_EMAIL,
         subject=f"Weekly Digest — {today}",
         html_content=html,
