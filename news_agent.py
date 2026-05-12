@@ -1,6 +1,7 @@
 """
 NewsClip Agent — Weekly News Digest
 Searches for top news stories and sends a formatted email digest.
+Runs every Sunday via GitHub Actions, or on demand via the Vercel dashboard.
 
 Requirements:
     pip install anthropic sendgrid
@@ -42,7 +43,7 @@ Search the web for news from {week_start.strftime('%d %b %Y')} to {week_end.strf
 
 Do these 4 searches one by one:
 1. "Portugal news this week"
-2. "Portugal economia politica maio 2026"
+2. "Portugal economia politica this week"
 3. "top world news this week"
 4. "business technology news this week"
 

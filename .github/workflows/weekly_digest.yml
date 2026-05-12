@@ -1,19 +1,19 @@
 # .github/workflows/weekly_digest.yml
 #
-# Runs the NewsClip agent every Monday at 07:00 Lisbon time (06:00 UTC).
+# Runs the NewsClip agent every Sunday at 07:00 Lisbon time (06:00 UTC).
 # Can also be triggered manually from the GitHub Actions UI.
 #
 # Required repository secrets (Settings → Secrets → Actions):
 #   ANTHROPIC_API_KEY   — from console.anthropic.com
-#   RESEND_API_KEY      — from resend.com
-#   DIGEST_EMAIL        — where to send the digest, e.g. you@gmail.com
-#   SENDER_EMAIL        — verified sender in Resend, e.g. digest@yourdomain.com
+#   SENDGRID_API_KEY    — from app.sendgrid.com
+#   DIGEST_EMAIL        — where you receive the digest, e.g. you@gmail.com
+#   SENDER_EMAIL        — your verified sender in SendGrid, e.g. you@gmail.com
 
 name: Weekly News Digest
 
 on:
   schedule:
-    - cron: '0 6 * * 1'   # Every Monday at 06:00 UTC = 07:00 Lisbon (WET/GMT)
+    - cron: '0 6 * * 0'   # Every Sunday at 06:00 UTC = 07:00 Lisbon (WET/GMT)
   workflow_dispatch:        # Allows manual run from GitHub UI
 
 jobs:
@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: '3.12'
 

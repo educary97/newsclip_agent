@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "pages/api/run.ts": {
+      "maxDuration": 300
+    }
+  }
+}
